@@ -1,0 +1,27 @@
+service_name: "binance-futures-trading-challenges"
+
+api:
+  host: "0.0.0.0"
+  port: 8000
+  reload: false
+
+exchange:
+  name: "binance_futures"
+  base_url: "https://fapi.binance.com"
+  websocket_url: "wss://fstream.binance.com/ws"
+  recv_window_ms: 5000
+
+risk:
+  enabled: true
+  max_daily_loss_pct: 5.0
+  pause_on_error: true
+
+monitoring:
+  account_poll_interval_seconds: 15
+  market_poll_interval_seconds: 5
+
+strategy:
+  enabled: false
+  mode: "manual"
+  symbols:
+    - "BTCUSDT"
