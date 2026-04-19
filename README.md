@@ -94,6 +94,45 @@ python -m app.cli show-config
 python -m app.cli check-config
 ```
 
+Binance REST 连通性检查：
+
+```bash
+python -m app.cli ping-exchange
+```
+
+查看余额：
+
+```bash
+python -m app.cli show-balance
+```
+
+查看持仓：
+
+```bash
+python -m app.cli show-positions
+python -m app.cli show-positions --symbol BTCUSDT
+```
+
+查看挂单：
+
+```bash
+python -m app.cli show-open-orders
+python -m app.cli show-open-orders --symbol BTCUSDT
+```
+
+调整杠杆：
+
+```bash
+python -m app.cli change-leverage 10 --symbol BTCUSDT
+```
+
+手动下单：
+
+```bash
+python -m app.cli place-order BUY MARKET 0.001 --symbol BTCUSDT --dry-run
+python -m app.cli place-order BUY LIMIT 0.001 --symbol BTCUSDT --price 50000 --time-in-force GTC --dry-run
+```
+
 ## 配置说明
 
 配置分为两层：
@@ -156,12 +195,111 @@ python -m app.cli check-config
 
 如果 `config/config.yaml` 不存在，程序会自动回退到 `config/config.example.yaml`。
 
+## Binance REST 接入说明
+
+### 1. 配置 API Key / Secret
+
+在 `.env` 里填写：
+
+```bash
+BINANCE_API_KEY=your_api_key
+BINANCE_API_SECRET=your_api_secret
+```
+
+只有签名接口会要求这两个字段，例如余额、持仓、挂单、下单和撤单。
+
+### 2. 开启 testnet
+
+`.env` 中使用：
+
+```bash
+BINANCE_USE_TESTNET=true
+```
+
+当前实现会根据这个开关自动切换到 Binance USDⓈ-M Futures Testnet 或主网 REST 地址。
+
+### 3. 验证连通性
+
+先做配置检查：
+
+```bash
+python -m app.cli check-config
+```
+
+然后测试交易所 REST 连通性：
+
+```bash
+python -m app.cli ping-exchange
+```
+
+这个命令会调用 `ping()` 和 `get_server_time()`，适合先确认网络和基础配置是否正常。
+
+### 4. 查看余额和持仓
+
+查看账户和余额：
+
+```bash
+python -m app.cli show-balance
+```
+
+查看全部持仓：
+
+```bash
+python -m app.cli show-positions
+```
+
+按交易对查看持仓：
+
+```bash
+python -m app.cli show-positions --symbol BTCUSDT
+```
+
+查看当前挂单：
+
+```bash
+python -m app.cli show-open-orders
+```
+
+### 5. 执行 dry-run 下单
+
+当前 `place-order` 支持 `MARKET` 和 `LIMIT` 两种基础订单。
+
+dry-run 模式不会调用 Binance 下单接口，只会打印将要发送的请求参数：
+
+```bash
+python -m app.cli place-order BUY MARKET 0.001 --symbol BTCUSDT --dry-run
+python -m app.cli place-order SELL LIMIT 0.001 --symbol BTCUSDT --price 60000 --time-in-force GTC --dry-run
+```
+
+如果你没有显式传 `--dry-run` 或 `--execute`，会默认使用 `config/config.yaml` 中的 `execution.dry_run`。
+
+### 6. 执行真实下单
+
+真实下单前，强烈建议先在 testnet 验证。
+
+确认：
+
+- `.env` 中 API Key / Secret 正确
+- `BINANCE_USE_TESTNET=true` 时先在测试网验证
+- `config/config.yaml` 中 `execution.dry_run` 已按你的意图设置
+
+执行真实下单：
+
+```bash
+python -m app.cli place-order BUY MARKET 0.001 --symbol BTCUSDT --execute
+python -m app.cli place-order BUY LIMIT 0.001 --symbol BTCUSDT --price 50000 --time-in-force GTC --execute
+```
+
+建议先使用最小仓位，并先通过 `change-leverage`、`show-balance`、`show-positions` 验证账户状态。
+
 ## 当前已完成
 
 - FastAPI 应用入口与生命周期管理
 - Typer CLI 入口
 - `.env` + YAML 合并配置加载
 - 精简可扩展的配置模型
+- Binance USDⓈ-M Futures REST client
+- Binance REST 手动验证 CLI
 - 基础日志初始化
 - 启动配置摘要输出
 - 健康检查接口
@@ -170,7 +308,6 @@ python -m app.cli check-config
 
 优先补齐以下模块：
 
-1. Binance Futures REST 客户端与签名请求
+1. execution service 的下单参数校验、风控检查与下单编排
 2. WebSocket 市场流与用户流连接管理
-3. execution service 的下单参数校验与 dry-run 执行器
-4. risk engine 的暂停条件与状态管理
+3. risk engine 的暂停条件与状态管理
