@@ -3,7 +3,7 @@ import json
 import typer
 import uvicorn
 
-from app.core.config import get_runtime_config, get_settings
+from app.core.config import ConfigLoadError, build_config_summary, get_config_path, get_settings
 from app.core.logging import setup_logging
 
 cli = typer.Typer(
@@ -20,25 +20,39 @@ def serve(
 ) -> None:
     """Run the FastAPI service locally."""
     setup_logging()
-    runtime_config = get_runtime_config()
+    settings = get_settings()
     uvicorn.run(
         "main:app",
-        host=host or runtime_config.api.host,
-        port=port or runtime_config.api.port,
-        reload=reload or runtime_config.api.reload,
+        host=host or settings.app.host,
+        port=port or settings.app.port,
+        reload=reload,
     )
 
 
 @cli.command("show-config")
 def show_config() -> None:
     """Print loaded environment and YAML configuration."""
-    settings = get_settings()
-    runtime_config = get_runtime_config()
-    payload = {
-        "settings": settings.model_dump(exclude={"binance_api_key", "binance_api_secret"}),
-        "runtime_config": runtime_config.model_dump(),
-    }
+    try:
+        settings = get_settings()
+    except ConfigLoadError as exc:
+        typer.echo(str(exc))
+        raise typer.Exit(code=1)
+    payload = settings.model_dump(exclude={"credentials": {"api_key", "api_secret"}})
     typer.echo(json.dumps(payload, indent=2, ensure_ascii=False))
+
+
+@cli.command("check-config")
+def check_config() -> None:
+    """Validate and print a concise config summary."""
+    try:
+        settings = get_settings()
+    except ConfigLoadError as exc:
+        typer.echo(str(exc))
+        raise typer.Exit(code=1)
+    summary = build_config_summary(settings)
+    typer.echo(f"Config file: {get_config_path()}")
+    typer.echo(json.dumps(summary, indent=2, ensure_ascii=False))
+    typer.echo("Config validation passed.")
 
 
 if __name__ == "__main__":

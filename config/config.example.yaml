@@ -1,27 +1,33 @@
-service_name: "binance-futures-trading-challenges"
-
-api:
+app:
+  name: "binance-futures-trading-challenges"
   host: "0.0.0.0"
   port: 8000
-  reload: false
+  log_level: "INFO"
 
 exchange:
-  name: "binance_futures"
-  base_url: "https://fapi.binance.com"
-  websocket_url: "wss://fstream.binance.com/ws"
-  recv_window_ms: 5000
+  symbol: "BTCUSDT"
+  default_leverage: 5
+  recv_window: 5000
+  request_timeout_seconds: 10
+
+execution:
+  max_single_order_notional_usdt: 100
+  max_open_exposure_usdt: 500
+  allow_market_order: true
+  allow_limit_order: true
+  dry_run: true
 
 risk:
-  enabled: true
-  max_daily_loss_pct: 5.0
-  pause_on_error: true
+  max_daily_loss_pct: 3.0
+  max_consecutive_losses: 3
+  max_api_failures: 5
 
 monitoring:
-  account_poll_interval_seconds: 15
-  market_poll_interval_seconds: 5
+  kline_interval: "1m"
+  volatility_threshold_pct: 1.5
+  reconnect_delay_seconds: 5
 
-strategy:
-  enabled: false
-  mode: "manual"
-  symbols:
-    - "BTCUSDT"
+service:
+  enable_api: true
+  enable_market_monitor: true
+  enable_user_stream: true

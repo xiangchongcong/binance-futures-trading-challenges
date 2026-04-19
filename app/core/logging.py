@@ -5,7 +5,7 @@ from app.core.config import get_settings
 
 def setup_logging() -> None:
     settings = get_settings()
-    level_name = settings.log_level.upper()
+    level_name = settings.app.log_level.upper()
     level = getattr(logging, level_name, logging.INFO)
 
     logging.basicConfig(
